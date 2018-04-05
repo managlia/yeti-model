@@ -93,6 +93,12 @@ public class Action extends ResourceSupport implements Serializable {
 	@JoinColumn(name="action_classification_type_id", nullable = true)
 	private ActionClassificationType classificationType;
 
+	
+	//bi-directional many-to-one association to ActionClassificationType
+	@ManyToOne
+	@JoinColumn(name="action_classification_other_type_id", nullable = true)
+	private ActionClassificationOtherType classificationOtherType;
+	
 	@Column(name="action_owner_id")
 	private Integer ownerId;
 
@@ -354,6 +360,13 @@ public class Action extends ResourceSupport implements Serializable {
 		this.calendarEvents = calendarEvents;
 	}
 	
+	public ActionClassificationOtherType getClassificationOtherType() {
+		return classificationOtherType;
+	}
+
+	public void setClassificationOtherType(ActionClassificationOtherType classificationOtherType) {
+		this.classificationOtherType = classificationOtherType;
+	}
 	
 	@Override
 	public String toString() {
@@ -363,7 +376,7 @@ public class Action extends ResourceSupport implements Serializable {
 				+ lastModifiedDate + ", name=" + name + ", restrictedToOwner=" + restrictedToOwner
 				+ ", targetCompletionDate=" + targetCompletionDate + ", targetValuation=" + targetValuation
 				+ ", parentActionId=" + parentActionId + ", parentCampaignId=" + parentCampaignId
-				+ ", classificationType=" + classificationType + ", ownerId=" + ownerId + ", scopeType=" + scopeType
+				+ ", classificationType=" + classificationType + ", classificationOtherType=" + classificationOtherType + ", ownerId=" + ownerId + ", scopeType=" + scopeType
 				+ ", actionChildren=" + actionChildren + ", attachments=" + attachments + ", tags=" + tags
 				+ ", contacts=" + contacts + ", campaigns=" + campaigns + ", companies=" + companies + "]";
 	}
@@ -382,6 +395,7 @@ public class Action extends ResourceSupport implements Serializable {
 		this.setParentCampaignId(action.getParentCampaignId());
 		this.setTags(action.getTags());
 		this.setClassificationType(action.getClassificationType());
+		this.setClassificationOtherType(action.getClassificationOtherType());
 		this.setScopeType(action.getScopeType());
 		this.setCalendarEvents(action.getCalendarEvents());
 	}
