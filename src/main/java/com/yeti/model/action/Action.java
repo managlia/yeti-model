@@ -1,16 +1,13 @@
 package com.yeti.model.action;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
-
 import javax.persistence.*;
 
-import org.hibernate.annotations.CreationTimestamp;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.rest.core.annotation.RestResource;
 import org.springframework.hateoas.ResourceSupport;
 import org.springframework.util.CollectionUtils;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
@@ -18,11 +15,11 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yeti.model.campaign.Campaign;
 import com.yeti.model.company.Company;
 import com.yeti.model.contact.Contact;
-import com.yeti.model.general.Attachment;
 import com.yeti.model.general.ScopeType;
 import com.yeti.model.general.Tag;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,7 +30,36 @@ import java.util.Set;
  */
 @Entity
 @Inheritance(strategy=InheritanceType.JOINED)
-@NamedQuery(name="Action.findAll", query="SELECT a FROM Action a")
+@NamedQueries({
+	@NamedQuery(
+		name="Action.findAll", 
+		query="SELECT a FROM Action a WHERE (a.scopeType.scopeTypeId = 'PA') "
+				+ "or "
+				+ "(a.scopeType.scopeTypeId = 'PR' and a.ownerId = :userId) "
+				+ "or "
+				+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in (:teamList) )"
+				
+		),
+	@NamedQuery(
+		name="Action.exists", 
+		query="SELECT case when (count(*) > 0) then true else false end "
+			+ "FROM Action a WHERE a.actionId = :actionId "
+			+ "AND ( (a.scopeType.scopeTypeId = 'PA') "
+			+ "or "
+			+ "(a.scopeType.scopeTypeId = 'PR' and a.ownerId = :userId) "
+			+ "or "
+			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in :teamList) )"
+		),
+	@NamedQuery(
+		name="Action.findOne", 
+		query="SELECT a FROM Action a WHERE a.actionId = :actionId "
+			+ "AND ( (a.scopeType.scopeTypeId = 'PA') "
+			+ "or "
+			+ "(a.scopeType.scopeTypeId = 'PR' and a.ownerId = :userId) "
+			+ "or "
+			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in :teamList) )"
+		)
+})
 public class Action extends ResourceSupport implements Serializable {
 	private static final long serialVersionUID = 1L;
 
@@ -46,27 +72,23 @@ public class Action extends ResourceSupport implements Serializable {
 	@Column(name="action_active")
 	private boolean isActive;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="action_actual_completion_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
 	private Date actualCompletionDate;
 
-	@Column(name="action_actual_valuation")
-	private String actualValuation;
-
-	@CreationTimestamp
 	@Column(name="action_create_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date createDate;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="action_deactivation_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date deactivationDate;
 
 	@Column(name="action_description")
 	private String description;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="action_last_modified_date", insertable=false, updatable=false)
-	//	@UpdateTimestamp
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date lastModifiedDate;
 
 	@Column(name="action_name")
@@ -75,12 +97,13 @@ public class Action extends ResourceSupport implements Serializable {
 	@Column(name="action_restrict_to_owner")
 	private boolean restrictedToOwner;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="action_target_completion_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date targetCompletionDate;
 
-	@Column(name="action_target_valuation")
-	private String targetValuation;
+	@Column(name="action_target_completion_date_end")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date targetCompletionDateEnd;
 
 	@Column(name="action_parent_action_id")
 	private Integer parentActionId;
@@ -106,7 +129,17 @@ public class Action extends ResourceSupport implements Serializable {
 	@ManyToOne
 	@JoinColumn(name="scope_type_id", nullable = true)
 	private ScopeType scopeType;
+	
+	@Column(name="team_id")
+	@JsonFormat(shape = JsonFormat.Shape.STRING)
+	private Integer teamId;	
+	
+	@Column(name="action_importance")
+	private Integer importance;	
 
+	@Column(name="action_difficulty")
+	private Integer difficulty;	
+	
 /*
 	@ManyToMany(cascade = CascadeType.ALL)
 	@JoinTable(name = "action_action", 
@@ -122,22 +155,11 @@ public class Action extends ResourceSupport implements Serializable {
 	@JsonManagedReference(value="action-action")
 	private List<ActionAction> actionChildren;	
 	
-	//bi-directional many-to-one association to Attachment
-	@ManyToMany(cascade = CascadeType.ALL)
-	@JoinTable(name = "action_attachment", 
-      joinColumns = @JoinColumn(name = "action_id"), 
-      inverseJoinColumns = @JoinColumn(name = "attachment_id"))
-	//@JsonManagedReference(value="action-attachment")
-	private Set<Attachment> attachments;
-
-	//bi-directional many-to-one association to ActionTag
-	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE } )
+	@ManyToMany
 	@JoinTable(name = "action_tag", 
       joinColumns = @JoinColumn(name = "action_id", referencedColumnName="action_id"), 
       inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="tag_id"))
-	//@JsonManagedReference(value="action-tag")
-	private Set<Tag> tags;
-	
+	private Set<Tag> tags = new HashSet<Tag>();
 	
 	@ManyToMany(cascade = {CascadeType.MERGE}, fetch=FetchType.LAZY, mappedBy = "actions")
 	@JsonIgnore
@@ -190,14 +212,6 @@ public class Action extends ResourceSupport implements Serializable {
 
 	public void setActualCompletionDate(Date actualCompletionDate) {
 		this.actualCompletionDate = actualCompletionDate;
-	}
-
-	public String getActualValuation() {
-		return this.actualValuation;
-	}
-
-	public void setActualValuation(String actualValuation) {
-		this.actualValuation = actualValuation;
 	}
 
 	public Date getCreateDate() {
@@ -256,12 +270,12 @@ public class Action extends ResourceSupport implements Serializable {
 		this.targetCompletionDate = targetCompletionDate;
 	}
 
-	public String getTargetValuation() {
-		return this.targetValuation;
+	public Date getTargetCompletionDateEnd() {
+		return targetCompletionDateEnd;
 	}
 
-	public void setTargetValuation(String targetValuation) {
-		this.targetValuation = targetValuation;
+	public void setTargetCompletionDateEnd(Date targetCompletionDateEnd) {
+		this.targetCompletionDateEnd = targetCompletionDateEnd;
 	}
 
 	public Integer getParentActionId() {
@@ -304,20 +318,36 @@ public class Action extends ResourceSupport implements Serializable {
 		this.scopeType = scopeType;
 	}
 
+	public Integer getTeamId() {
+		return teamId;
+	}
+
+	public void setTeamId(Integer teamId) {
+		this.teamId = teamId;
+	}
+
+	public Integer getImportance() {
+		return importance;
+	}
+
+	public void setImportance(Integer importance) {
+		this.importance = importance;
+	}
+
+	public Integer getDifficulty() {
+		return difficulty;
+	}
+
+	public void setDifficulty(Integer difficulty) {
+		this.difficulty = difficulty;
+	}
+
 	public List<ActionAction> getActionChildren() {
 		return this.actionChildren;
 	}
 
 	public void setActionChildren(List<ActionAction> actionChildren) {
 		this.actionChildren = actionChildren;
-	}
-
-	public Set<Attachment> getAttachments() {
-		return this.attachments;
-	}
-
-	public void setAttachments(Set<Attachment> attachments) {
-		this.attachments = attachments;
 	}
 
 	public List<Company> getCompanies() {
@@ -368,36 +398,4 @@ public class Action extends ResourceSupport implements Serializable {
 		this.classificationOtherType = classificationOtherType;
 	}
 	
-	@Override
-	public String toString() {
-		return "Action [actionId=" + actionId + ", isActive=" + isActive  + ", isDeleteable=" + this.isDeleteable() + ", actualCompletionDate="
-				+ actualCompletionDate + ", actualValuation=" + actualValuation + ", createDate=" + createDate
-				+ ", deactivationDate=" + deactivationDate + ", description=" + description + ", lastModifiedDate="
-				+ lastModifiedDate + ", name=" + name + ", restrictedToOwner=" + restrictedToOwner
-				+ ", targetCompletionDate=" + targetCompletionDate + ", targetValuation=" + targetValuation
-				+ ", parentActionId=" + parentActionId + ", parentCampaignId=" + parentCampaignId
-				+ ", classificationType=" + classificationType + ", classificationOtherType=" + classificationOtherType + ", ownerId=" + ownerId + ", scopeType=" + scopeType
-				+ ", actionChildren=" + actionChildren + ", attachments=" + attachments + ", tags=" + tags
-				+ ", contacts=" + contacts + ", campaigns=" + campaigns + ", companies=" + companies + "]";
-	}
-	
-	
-	public void copyActionForSubclass(Action action) {
-		this.setActive(action.getActive());
-		this.setActualCompletionDate(action.getActualCompletionDate());
-		this.setActualValuation(action.getActualValuation());
-		this.setTargetCompletionDate(action.getTargetCompletionDate());
-		this.setTargetValuation(action.getTargetValuation());
-		this.setDescription(action.getDescription());
-		this.setName(action.getName());
-		this.setOwnerId(action.getOwnerId());
-		this.setParentActionId(action.getParentActionId());
-		this.setParentCampaignId(action.getParentCampaignId());
-		this.setTags(action.getTags());
-		this.setClassificationType(action.getClassificationType());
-		this.setClassificationOtherType(action.getClassificationOtherType());
-		this.setScopeType(action.getScopeType());
-		this.setCalendarEvents(action.getCalendarEvents());
-	}
-
 }

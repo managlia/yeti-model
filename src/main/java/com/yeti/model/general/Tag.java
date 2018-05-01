@@ -6,13 +6,16 @@ import javax.persistence.*;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.yeti.model.action.Action;
 import com.yeti.model.campaign.Campaign;
 import com.yeti.model.company.Company;
 import com.yeti.model.contact.Contact;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Set;
+import java.util.HashSet;
 
 
 /**
@@ -44,23 +47,8 @@ public class Tag implements Serializable {
 	private String description;
 
 	@Column(name="tag_name")
+	@JsonPropertyOrder(alphabetic=true)
 	private String name;
-
-	@ManyToMany(mappedBy = "tags", cascade = CascadeType.ALL)
-	@JsonIgnore
-	private Set<Company> companies;
-	
-	@ManyToMany(mappedBy = "tags", cascade = CascadeType.ALL)
-	@JsonIgnore
-	private Set<Contact> contacts;
-
-	@ManyToMany(mappedBy = "tags", cascade = CascadeType.ALL)
-	@JsonIgnore
-	private Set<Campaign> campaigns;
-
-	@ManyToMany(mappedBy = "tags", cascade = CascadeType.ALL)
-	@JsonIgnore
-	private Set<Action> actions;
 	
 	public Tag() {
 	}
@@ -103,37 +91,5 @@ public class Tag implements Serializable {
 
 	public void setName(String name) {
 		this.name = name;
-	}
-	
-	public Set<Company> getCompanies() {
-		return companies;
-	}
-
-	public void setCompanies(Set<Company> companies) {
-		this.companies = companies;
-	}
-
-	public Set<Contact> getContacts() {
-		return contacts;
-	}
-
-	public void setContacts(Set<Contact> contacts) {
-		this.contacts = contacts;
-	}
-
-	public Set<Campaign> getCampaigns() {
-		return campaigns;
-	}
-
-	public void setCampaigns(Set<Campaign> campaigns) {
-		this.campaigns = campaigns;
-	}
-
-	public Set<Action> getActions() {
-		return actions;
-	}
-
-	public void setActions(Set<Action> actions) {
-		this.actions = actions;
 	}
 }

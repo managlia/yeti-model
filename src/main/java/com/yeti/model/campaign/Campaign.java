@@ -15,13 +15,13 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yeti.model.action.Action;
 import com.yeti.model.company.Company;
 import com.yeti.model.contact.Contact;
-import com.yeti.model.general.Attachment;
 import com.yeti.model.general.ScopeType;
 import com.yeti.model.general.Tag;
 import com.yeti.model.search.CampaignOrAction;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -31,7 +31,35 @@ import java.util.Set;
  * 
  */
 @Entity
-@NamedQuery(name="Campaign.findAll", query="SELECT c FROM Campaign c")
+@NamedQueries({
+	@NamedQuery(
+		name="Campaign.findAll", 
+		query="SELECT c FROM Campaign c WHERE (c.scopeType.scopeTypeId = 'PA') "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'PR' and c.ownerId = :userId) "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'SH' and c.teamId in (:teamList) )"
+			),
+		@NamedQuery(
+			name="Campaign.exists", 
+			query="SELECT case when (count(*) > 0) then true else false end "
+				+ "FROM Campaign c WHERE c.campaignId = :campaignId  "
+				+ "AND ( (c.scopeType.scopeTypeId = 'PA') "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'PR' and c.ownerId = :userId) "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'SH' and c.teamId in (:teamList) ) )"
+			),
+		@NamedQuery(
+			name="Campaign.findOne", 
+			query="SELECT c FROM Campaign c WHERE c.campaignId = :campaignId "
+				+ "AND ( (c.scopeType.scopeTypeId = 'PA') "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'PR' and c.ownerId = :userId) "
+				+ "or "
+				+ "(c.scopeType.scopeTypeId = 'SH' and c.teamId in (:teamList) ) )"
+		) 
+})
 public class Campaign extends ResourceSupport implements Serializable, Comparable<Campaign> {
 	private static final long serialVersionUID = 1L;
 
@@ -44,41 +72,35 @@ public class Campaign extends ResourceSupport implements Serializable, Comparabl
 	@Column(name="campaign_active")
 	private boolean isActive;
 
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="campaign_actual_completion_date")
-	private Date actualCompletionDate;
+	@Column(name="campaign_target_completion_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
+	private Date targetCompletionDate;
 
-	@Column(name="campaign_actual_valuation")
-	private String actualValuation;
+	@Column(name="campaign_actual_completion_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
+	private Date actualCompletionDate;
 
 	@CreationTimestamp
 	@Column(name="campaign_create_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date createDate;
 
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="campaign_deactivation_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
 	private Date deactivationDate;
+
+	@Column(name="campaign_last_modified_date", insertable=false, updatable=false)
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date lastModifiedDate;
 
 	@Column(name="campaign_description")
 	private String description;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="campaign_last_modified_date", insertable=false, updatable=false)
-	//	@UpdateTimestamp
-	private Date lastModifiedDate;
 
 	@Column(name="campaign_name")
 	private String name;
 
 	@Column(name="campaign_restrict_to_owner")
 	private boolean isRestrictedToOwner;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="campaign_target_completion_date")
-	private Date targetCompletionDate;
-
-	@Column(name="campaign_target_valuation")
-	private String targetValuation;
 
 	//bi-directional many-to-one association to CampaignClassificationType
 	@ManyToOne
@@ -94,21 +116,24 @@ public class Campaign extends ResourceSupport implements Serializable, Comparabl
 	@JoinColumn(name="scope_type_id")
 	private ScopeType scopeType;
 
-	//bi-directional many-to-one association to CampaignAttachment
-	@ManyToMany(cascade = CascadeType.ALL)
-	@JoinTable(name = "campaign_attachment", 
-      joinColumns = @JoinColumn(name = "campaign_id"), 
-      inverseJoinColumns = @JoinColumn(name = "attachment_id"))
-	//@JsonManagedReference(value="campaign-attachment")
-	private Set<Attachment> attachments;
+	@Column(name="team_id")
+	@JsonFormat(shape = JsonFormat.Shape.STRING)
+	private Integer teamId;
+	
+	@Column(name="campaign_importance")
+	private Integer importance;	
 
-	//bi-directional many-to-one association to CampaignTag
-	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE } )
+	@Column(name="campaign_difficulty")
+	private Integer difficulty;	
+	
+	
+	
+	
+	@ManyToMany
 	@JoinTable(name = "campaign_tag", 
       joinColumns = @JoinColumn(name = "campaign_id", referencedColumnName="campaign_id"), 
       inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="tag_id"))
-	//@JsonManagedReference(value="campaign-tag")
-	private Set<Tag> tags;
+	private Set<Tag> tags = new HashSet<Tag>();
 
 	
 	
@@ -163,14 +188,6 @@ public class Campaign extends ResourceSupport implements Serializable, Comparabl
 
 	public void setActualCompletionDate(Date actualCompletionDate) {
 		this.actualCompletionDate = actualCompletionDate;
-	}
-
-	public String getActualValuation() {
-		return this.actualValuation;
-	}
-
-	public void setActualValuation(String actualValuation) {
-		this.actualValuation = actualValuation;
 	}
 
 	public Date getCreateDate() {
@@ -229,14 +246,6 @@ public class Campaign extends ResourceSupport implements Serializable, Comparabl
 		this.targetCompletionDate = targetCompletionDate;
 	}
 
-	public String getTargetValuation() {
-		return this.targetValuation;
-	}
-
-	public void setTargetValuation(String targetValuation) {
-		this.targetValuation = targetValuation;
-	}
-
 	public CampaignClassificationType getClassificationType() {
 		return this.classificationType;
 	}
@@ -261,20 +270,36 @@ public class Campaign extends ResourceSupport implements Serializable, Comparabl
 		this.scopeType = scopeType;
 	}
 
+	public Integer getTeamId() {
+		return teamId;
+	}
+
+	public void setTeamId(Integer teamId) {
+		this.teamId = teamId;
+	}
+
+	public Integer getImportance() {
+		return importance;
+	}
+
+	public void setImportance(Integer importance) {
+		this.importance = importance;
+	}
+
+	public Integer getDifficulty() {
+		return difficulty;
+	}
+
+	public void setDifficulty(Integer difficulty) {
+		this.difficulty = difficulty;
+	}
+
 	public List<Action> getActions() {
 		return this.actions;
 	}
 
 	public void setActions(List<Action> actions) {
 		this.actions = actions;
-	}
-
-	public Set<Attachment> getAttachments() {
-		return this.attachments;
-	}
-
-	public void setAttachments(Set<Attachment> attachments) {
-		this.attachments = attachments;
 	}
 
 	public List<Company> getCompanies() {

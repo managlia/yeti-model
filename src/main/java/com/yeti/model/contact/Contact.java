@@ -4,8 +4,6 @@ import java.io.Serializable;
 import javax.persistence.*;
 
 import org.hibernate.annotations.CreationTimestamp;
-import org.springframework.data.rest.core.annotation.RestResource;
-
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonFormat;
@@ -14,11 +12,11 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.yeti.model.action.Action;
 import com.yeti.model.campaign.Campaign;
 import com.yeti.model.company.Company;
-import com.yeti.model.general.Attachment;
 import com.yeti.model.general.Tag;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -42,71 +40,76 @@ public class Contact implements Serializable {
 	@Column(name="contact_active")
 	private boolean isActive;
 
-	// included for transportation to/from the email system but not stored in its own db field
-	@JsonInclude()
-	@Transient
-	private String emailRecipientIndicator;
-	
-	@CreationTimestamp
-	@Column(name="contact_create_date")
-	private Date createDate;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="contact_deactivation_date")
-	private Date deactivationDate;
-
-	@Column(name="contact_description")
-	private String description;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="contact_dob")
-	private Date dob;
-
 	@Column(name="contact_email_address")
 	private String contactEmailAddress;
 
 	@Column(name="contact_first_name")
 	private String firstName;
 
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="contact_last_modified_date", insertable=false, updatable=false)
-	//	@UpdateTimestamp
-	private Date lastModifiedDate;
-
 	@Column(name="contact_last_name")
 	private String lastName;
 
-	@Column(name="contact_valuation")
-	private String valuation;
-			
+	// included for transportation to/from the email system but not stored in its own db field
+	@JsonInclude()
+	@Transient
+	private String emailRecipientIndicator;
+	
+	@Column(name="contact_description")
+	private String description;
+
+	@CreationTimestamp
+	@Column(name="contact_create_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date createDate;
+
+	@Column(name="contact_deactivation_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date deactivationDate;
+
+	@Column(name="contact_last_modified_date", insertable=false, updatable=false)
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date lastModifiedDate;
+
+	@Column(name="contact_dob")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
+	private Date dob;
+
+	
+	
+	
 	//bi-directional many-to-one association to ContactUrl
-	@OneToMany(mappedBy="contact", cascade = CascadeType.ALL, orphanRemoval = true)
+	@OneToMany(mappedBy="contact", cascade = CascadeType.ALL, orphanRemoval=true)
 	@JsonManagedReference(value="contact-url")
 	private List<ContactUrl> urls;
-	
-	//bi-directional many-to-one association to CompanyAttachment
-	@ManyToMany(cascade = CascadeType.ALL)
-	@JoinTable(name = "contact_attachment", 
-	  joinColumns = @JoinColumn(name = "contact_id", insertable = false, updatable = false), 
-	  inverseJoinColumns = @JoinColumn(name = "attachment_id", insertable = false, updatable = false))
-	//@JsonManagedReference(value="contact-attachment")
-	private Set<Attachment> attachments;
-	
-	//bi-directional many-to-one association to CompanyTag
-	@ManyToMany(cascade = CascadeType.ALL)
-	@JoinTable(name = "contact_tag", 
-	  joinColumns = @JoinColumn(name = "contact_id", insertable = false, updatable = false), 
-	  inverseJoinColumns = @JoinColumn(name = "tag_id", insertable = false, updatable = false))
-	//@JsonManagedReference(value="contact-tag")
-	private Set<Tag> tags;
 
+	//bi-directional many-to-one association to ContactPhone
+	@OneToMany(mappedBy="contact", cascade = CascadeType.ALL, orphanRemoval=true)
+	@JsonManagedReference(value="contact-phone")
+	private List<ContactPhone> phones;
+	
+	//bi-directional many-to-one association to ContactAddress
+	@OneToMany(mappedBy="contact", cascade = CascadeType.ALL, orphanRemoval=true)
+	@JsonManagedReference(value="contact-address")
+	private List<ContactAddress> addresses;
+
+	
+	
+	
+	@ManyToMany
+	@JoinTable(name = "contact_tag", 
+      joinColumns = @JoinColumn(name = "contact_id", referencedColumnName="contact_id" ), 
+      inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="tag_id" ))
+	private Set<Tag> tags = new HashSet<Tag>();
+
+	//bi-directional many-to-one association to ContactTeam
+    @ManyToMany(cascade = {CascadeType.MERGE}, fetch=FetchType.LAZY, mappedBy = "contacts")
+	@JsonIgnore
+	private List<Team> teams;
+	
+	
 	@Column(name="company_id")
 	@JsonFormat(shape = JsonFormat.Shape.STRING)
 	private Integer companyId;
-
-	
-	
-	
 	
 	
 	@ManyToOne
@@ -142,12 +145,6 @@ public class Contact implements Serializable {
 	@JoinColumn(name="contact_title_type_id")
 	private ContactTitleType titleType;
 
-	//bi-directional many-to-one association to ContactAddress
-	@OneToMany(mappedBy="contact", cascade = CascadeType.ALL, orphanRemoval = true)
-	@JsonManagedReference(value="contact-address")
-	private List<ContactAddress> addresses;
-
-	
 	public Contact() {
 	}
 
@@ -239,14 +236,6 @@ public class Contact implements Serializable {
 		this.lastName = lastName;
 	}
 
-	public String getValuation() {
-		return this.valuation;
-	}
-
-	public void setValuation(String valuation) {
-		this.valuation = valuation;
-	}
-
 	public List<Action> getActions() {
 		return this.actions;
 	}
@@ -288,37 +277,60 @@ public class Contact implements Serializable {
 	}
 
 	public List<ContactAddress> getAddresses() {
+		if( this.addresses == null ) {
+			this.addresses = new ArrayList<ContactAddress>();
+		}
 		return this.addresses;
 	}
 
 	public void setAddresses(List<ContactAddress> addresses) {
-		this.addresses = addresses;
-	}
-
-	public Set<Attachment> getAttachments() {
-		return this.attachments;
-	}
-
-	public void setAttachments(Set<Attachment> attachments) {
-		this.attachments = attachments;
+		this.getAddresses().clear();
+	    if (addresses != null) {
+	        this.addresses.addAll(addresses);
+	    }
 	}
 
 	public Set<Tag> getTags() {
+		if( this.tags == null ) {
+			this.tags = new HashSet<Tag>();
+		}
 		return this.tags;
 	}
 
 	public void setTags(Set<Tag> tags) {
-		this.tags = tags;
+		this.getTags().clear();
+	    if (tags != null) {
+	        this.tags.addAll(tags);
+	    }
 	}
 
 	public List<ContactUrl> getUrls() {
+		if( this.urls == null ) {
+			this.urls = new ArrayList<ContactUrl>();
+		}
 		return this.urls;
 	}
 
 	public void setUrls(List<ContactUrl> urls) {
-		this.urls = urls;
+		this.getUrls().clear();
+	    if (urls != null) {
+	        this.urls.addAll(urls);
+	    }
 	}
 
+	public List<Team> getTeams() {
+		if( this.teams == null ) {
+			this.teams = new ArrayList<Team>();
+		}
+		return teams;
+	}
+
+	public void setTeams(List<Team> teams) {
+		this.getTeams().clear();
+	    if (teams != null) {
+	        this.teams.addAll(teams);
+	    }
+	}
 
 	public Company getCompany() {
 		return company;
@@ -328,5 +340,17 @@ public class Contact implements Serializable {
 		this.company = company;
 	}
 
+	public List<ContactPhone> getPhones() {
+		if( this.phones == null ) {
+			this.phones = new ArrayList<ContactPhone>();
+		}
+		return this.phones;
+	}
 
+	public void setPhones(List<ContactPhone> phones) {
+		this.getPhones().clear();
+	    if (phones != null) {
+	        this.phones.addAll(phones);
+	    }
+	}
 }

@@ -153,4 +153,12 @@ public class ContactAddress implements Serializable {
 		this.contact = contact;
 	}
 
+	@Override
+	public String toString() {
+		return "ContactAddress [addressId=" + addressId + ", address1=" + address1 + ", address2=" + address2
+				+ ", city=" + city + ", createDate=" + createDate + ", lastModifiedDate=" + lastModifiedDate
+				+ ", countryId=" + countryId + ", postalCode=" + postalCode + ", stateId=" + stateId + ", addressType="
+				+ addressType + "]";
+	}
+
 }

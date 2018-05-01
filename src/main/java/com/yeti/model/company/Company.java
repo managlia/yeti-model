@@ -1,7 +1,6 @@
 package com.yeti.model.company;
 
 import java.io.Serializable;
-import java.sql.Timestamp;
 
 import javax.persistence.*;
 
@@ -14,7 +13,6 @@ import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.yeti.model.action.Action;
 import com.yeti.model.campaign.Campaign;
 import com.yeti.model.contact.Contact;
-import com.yeti.model.general.Attachment;
 import com.yeti.model.general.Tag;
 
 import java.util.ArrayList;
@@ -44,13 +42,8 @@ public class Company implements Serializable {
 	@Column(name="company_active")
 	private boolean isActive;
 
-	@CreationTimestamp
-	@Column(name="company_create_date")
-	private Date createDate;
-
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="company_deactivation_date")
-	private Date deactivationDate;
+	@Column(name="company_name")
+	private String name;
 
 	@Column(name="company_description")
 	private String description;
@@ -58,20 +51,22 @@ public class Company implements Serializable {
 	@Column(name="company_external_id")
 	private String externalId;
 
-	@Temporal(TemporalType.TIMESTAMP)
-	@Column(name="company_last_modified_date", insertable=false, updatable=false)
-	//	@UpdateTimestamp
-	private Date lastModifiedDate;
-
-	@Column(name="company_name")
-	private String name;
-
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name="company_target_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm")
 	private Date targetDate;
 
-	@Column(name="company_valuation")
-	private String valuation;
+	@CreationTimestamp
+	@Column(name="company_create_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date createDate;
+
+	@Column(name="company_deactivation_date")
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date deactivationDate;
+
+	@Column(name="company_last_modified_date", insertable=false, updatable=false)
+	@JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm z")
+	private Date lastModifiedDate;
 
 	//bi-directional many-to-one association to CompanyClassificationType
 	@ManyToOne
@@ -88,33 +83,29 @@ public class Company implements Serializable {
 	@JsonManagedReference(value="company-url")
 	private List<CompanyUrl> urls;
 	
-	//bi-directional many-to-one association to CompanyAttachment
-	@ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE } )
-	@JoinTable(name = "company_attachment",
-      joinColumns = @JoinColumn(name = "company_id"), 
-      inverseJoinColumns = @JoinColumn(name = "attachment_id"))
-	//@JsonManagedReference(value="company-attachment")
-	private Set<Attachment> attachments;
-
-	//bi-directional many-to-one association to CompanyTag
-	@ManyToMany(cascade = { CascadeType.ALL } )
-	@JoinTable(name = "company_tag", 
-      joinColumns = @JoinColumn(name = "company_id", referencedColumnName="company_id"), 
-      inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="tag_id"))
-	//@JsonManagedReference(value="company-tag")
-	private Set<Tag> tags;
-
-
+	//bi-directional many-to-one association to CompanyPhone
+	@OneToMany(mappedBy="company", cascade = CascadeType.ALL, orphanRemoval = true)
+	@JsonManagedReference(value="company-phone")
+	private List<CompanyPhone> phones;
 	
 	
 	
 	
-	//bi-directional many-to-one association to CompanyUrl
+	@ManyToMany
+	@JoinTable(name = "company_tag",
+      joinColumns = @JoinColumn(name = "company_id", referencedColumnName="company_id" ), 
+      inverseJoinColumns = @JoinColumn(name = "tag_id", referencedColumnName="tag_id" ))
+	private Set<Tag> tags = new HashSet<Tag>();
+    
+    
+    
+    
+    
+    //bi-directional many-to-one association to contacts
 	@OneToMany(mappedBy="company")
 	@JsonManagedReference(value="company-contacts")
 	// @JsonIgnore
 	private List<Contact> contacts;
-
 	
     @ManyToMany(cascade = {CascadeType.MERGE}, fetch=FetchType.LAZY)
 	@JoinTable(name = "campaign_company", 
@@ -130,11 +121,6 @@ public class Company implements Serializable {
 	@JsonIgnore
 	private List<Action> actions = new ArrayList<Action>(0);
 
-    
-    
-    
-    
-    
     
 	public List<Contact> getContacts() {
 		return contacts;
@@ -219,14 +205,6 @@ public class Company implements Serializable {
 		this.targetDate = targetDate;
 	}
 
-	public String getValuation() {
-		return this.valuation;
-	}
-
-	public void setValuation(String valuation) {
-		this.valuation = valuation;
-	}
-
 	public List<Campaign> getCampaigns() {
 		return this.campaigns;
 	}
@@ -252,35 +230,58 @@ public class Company implements Serializable {
 	}
 
 	public List<CompanyAddress> getAddresses() {
+		if( this.addresses == null ) {
+			this.addresses = new ArrayList<CompanyAddress>();
+		}
 		return this.addresses;
 	}
 
 	public void setAddresses(List<CompanyAddress> addresses) {
-		this.addresses = addresses;
-	}
-
-	public Set<Attachment> getAttachments() {
-		return this.attachments;
-	}
-
-	public void setAttachments(Set<Attachment> attachments) {
-		this.attachments = attachments;
+		this.getAddresses().clear();
+	    if (addresses != null) {
+	        this.addresses.addAll(addresses);
+	    }
 	}
 
 	public Set<Tag> getTags() {
+		if( this.tags == null ) {
+			this.tags = new HashSet<Tag>();
+		}
 		return this.tags;
 	}
 
 	public void setTags(Set<Tag> tags) {
-		this.tags = tags;
+		this.getTags().clear();
+	    if (tags != null) {
+	        this.tags.addAll(tags);
+	    }
 	}
 
 	public List<CompanyUrl> getUrls() {
+		if( this.urls == null ) {
+			this.urls = new ArrayList<CompanyUrl>();
+		}
 		return this.urls;
 	}
 
 	public void setUrls(List<CompanyUrl> urls) {
-		this.urls = urls;
+		this.getUrls().clear();
+	    if (urls != null) {
+	        this.urls.addAll(urls);
+	    }
 	}
 
+	public List<CompanyPhone> getPhones() {
+		if( this.phones == null ) {
+			this.phones = new ArrayList<CompanyPhone>();
+		}
+		return this.phones;
+	}
+
+	public void setPhones(List<CompanyPhone> phones) {
+		this.getPhones().clear();
+	    if (phones != null) {
+	        this.phones.addAll(phones);
+	    }
+	}
 }
