@@ -27,6 +27,7 @@ import java.util.Set;
  */
 @Entity
 @Inheritance(strategy=InheritanceType.JOINED)
+@Table(name="contact")
 @NamedQuery(name="Contact.findAll", query="SELECT c FROM Contact c")
 public class Contact implements Serializable {
 	private static final long serialVersionUID = 1L;

@@ -23,6 +23,7 @@ import java.util.HashSet;
  * 
  */
 @Entity
+@Table(name="tag")
 @NamedQuery(name="Tag.findAll", query="SELECT t FROM Tag t")
 //@Audited
 public class Tag implements Serializable {

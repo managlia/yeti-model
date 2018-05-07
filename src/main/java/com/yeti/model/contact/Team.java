@@ -17,6 +17,7 @@ import java.util.List;
  */
 @Entity
 @Inheritance(strategy=InheritanceType.JOINED)
+@Table(name="team")
 @NamedQuery(name="Team.findAll", query="SELECT t FROM Team t")
 public class Team {
 	private static final long serialVersionUID = 1L;

@@ -3,6 +3,7 @@ package com.yeti.model.action;
 import java.io.Serializable;
 import javax.persistence.*;
 
+import org.hibernate.annotations.ColumnTransformer;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.rest.core.annotation.RestResource;
 import org.springframework.hateoas.ResourceSupport;
@@ -17,6 +18,7 @@ import com.yeti.model.company.Company;
 import com.yeti.model.contact.Contact;
 import com.yeti.model.general.ScopeType;
 import com.yeti.model.general.Tag;
+import com.yeti.util.UpdatableBCrypt;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -30,6 +32,7 @@ import java.util.Set;
  */
 @Entity
 @Inheritance(strategy=InheritanceType.JOINED)
+@Table(name="action")
 @NamedQueries({
 	@NamedQuery(
 		name="Action.findAll", 
@@ -48,7 +51,7 @@ import java.util.Set;
 			+ "or "
 			+ "(a.scopeType.scopeTypeId = 'PR' and a.ownerId = :userId) "
 			+ "or "
-			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in :teamList) )"
+			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in (:teamList) ) )"
 		),
 	@NamedQuery(
 		name="Action.findOne", 
@@ -57,7 +60,7 @@ import java.util.Set;
 			+ "or "
 			+ "(a.scopeType.scopeTypeId = 'PR' and a.ownerId = :userId) "
 			+ "or "
-			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in :teamList) )"
+			+ "(a.scopeType.scopeTypeId = 'SH' and a.teamId in (:teamList) ) )"
 		)
 })
 public class Action extends ResourceSupport implements Serializable {
@@ -67,6 +70,8 @@ public class Action extends ResourceSupport implements Serializable {
 	@Column(name="action_id", insertable=false, updatable=false)
     @GeneratedValue(strategy = GenerationType.AUTO)
 	@JsonFormat(shape = JsonFormat.Shape.STRING)
+	@ColumnTransformer(  read="xxxx", 
+						 write="xxxx")
 	private Integer actionId;
 
 	@Column(name="action_active")

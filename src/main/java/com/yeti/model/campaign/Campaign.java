@@ -31,6 +31,7 @@ import java.util.Set;
  * 
  */
 @Entity
+@Table(name="campaign")
 @NamedQueries({
 	@NamedQuery(
 		name="Campaign.findAll", 

@@ -18,6 +18,7 @@ import java.util.List;
  * 
  */
 @Entity
+@Table(name="email")
 @NamedQuery(name="Email.findAll", query="SELECT e FROM Email e")
 public class Email extends Action implements Serializable {
 	private static final long serialVersionUID = 1L;

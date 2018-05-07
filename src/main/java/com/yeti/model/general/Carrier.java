@@ -12,6 +12,7 @@ import java.util.Date;
  * 
  */
 @Entity
+@Table(name="carrier")
 @NamedQuery(name="Carrier.findAll", query="SELECT c FROM Carrier c")
 public class Carrier implements Serializable {
 	private static final long serialVersionUID = 1L;

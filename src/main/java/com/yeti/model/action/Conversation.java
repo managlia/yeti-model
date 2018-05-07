@@ -11,6 +11,7 @@ import javax.persistence.*;
  * 
  */
 @Entity
+@Table(name="conversation")
 @NamedQuery(name="Conversation.findAll", query="SELECT c FROM Conversation c")
 public class Conversation extends Action implements Serializable {
 	private static final long serialVersionUID = 1L;

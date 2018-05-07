@@ -5,6 +5,7 @@ import java.math.BigInteger;
 
 import javax.persistence.*;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.yeti.model.contact.Contact;
 
@@ -17,10 +18,17 @@ import java.util.List;
  * 
  */
 @Entity
+@Table(name="user")
 @NamedQuery(name="User.findAll", query="SELECT u FROM User u")
-public class User extends Contact implements Serializable {
+public class User implements Serializable {
 	private static final long serialVersionUID = 1L;
 
+	@Id
+	@Column(name="contact_id")
+    @GeneratedValue(strategy = GenerationType.AUTO)
+	@JsonFormat(shape = JsonFormat.Shape.STRING)
+	private Integer contactId;	
+	
 	@Column(name="email_system")
 	@JsonIgnore
 	private String emailSystem;

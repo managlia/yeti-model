@@ -1,15 +1,12 @@
 package com.yeti.model.host;
 
 import javax.persistence.*;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.ManyToOne;
-import javax.persistence.NamedQuery;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
+@Table(name="role")
 @NamedQuery(name="Role.findAll", query="SELECT r FROM Role r")
 public class Role {
 

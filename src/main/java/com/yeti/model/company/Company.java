@@ -28,6 +28,7 @@ import java.util.Set;
  */
 @Entity
 @Inheritance(strategy=InheritanceType.JOINED)
+@Table(name="company")
 @NamedQuery(name="Company.findAll", query="SELECT c FROM Company c")
 @DynamicUpdate
 public class Company implements Serializable {

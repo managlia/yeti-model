@@ -10,6 +10,7 @@ import java.util.Date;
  * 
  */
 @Entity
+@Table(name="calendar_event")
 @NamedQuery(name="Reminder.findAll", query="SELECT c FROM CalendarEvent c")
 public class CalendarEvent extends Action implements Serializable {
 	private static final long serialVersionUID = 1L;
